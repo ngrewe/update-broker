@@ -1,0 +1,6 @@
+[package]
+name = "upgrade-broker"
+version = "0.1.0"
+authors = ["Niels Grewe <niels.grewe@halbordnung.de>"]
+
+[dependencies]
