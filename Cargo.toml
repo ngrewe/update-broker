@@ -17,6 +17,8 @@ futures = "~0.1.17"
 inotify = "*"
 tokio-core = "*"
 tokio-inotify = "~0.3.0"
+tokio-signal = "~0.1.2"
+tokio-timer = "~0.1.2"
 
 [build-dependencies]
 gcc = "*"

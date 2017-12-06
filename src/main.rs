@@ -9,8 +9,10 @@ extern crate slog_journald;
 extern crate slog_async;
 extern crate libc;
 extern crate futures;
-extern crate tokio_inotify;
 extern crate tokio_core;
+extern crate tokio_inotify;
+extern crate tokio_signal;
+extern crate tokio_timer;
 extern crate dbus_tokio;
 extern crate dbus;
 extern crate inotify;
@@ -19,10 +21,13 @@ use slog_journald::JournaldDrain;
 
 use std::{thread, time};
 use std::path::Path;
+use std::rc::Rc;
 
 use futures::stream::Stream;
+use futures::Future;
 use tokio_inotify::AsyncINotify;
 use tokio_core::reactor::Core;
+use tokio_timer::Timer;
 
 mod apt;
 mod update_status;
@@ -42,20 +47,16 @@ fn main() {
         drain1, drain2
     ).fuse()
     , o!());
-    let mut evloop = Core::new().unwrap();
-
-    let inot = AsyncINotify::init(&evloop.handle()).unwrap();
     let reboot_sentinel = Path::new(SENTINEL_FILE);
-    inot.add_watch(reboot_sentinel.parent().unwrap(),
-                   tokio_inotify::IN_CREATE | tokio_inotify::IN_DELETE | tokio_inotify::IN_MODIFY)
-        .unwrap();
-
-    let show_events = inot.filter(|ev| ev.name.as_os_str() == reboot_sentinel.file_name().unwrap()).map(|ev| update_status::UpdateStatusIndication::from_inotify_event(&ev)).for_each(|ev| {
-            info!(root, "update {:?}", ev);
-        Ok(())
-    });
-    server::engine(&reboot_sentinel);
-    evloop.run(show_events).unwrap();
+    let logger = Rc::new(root);
+    if let Err(e) = server::engine(&reboot_sentinel, logger.clone()) {
+        error!(&logger, "Startup failure. {:?}", e);
+        let timer = Timer::default();
+        timer.sleep(time::Duration::from_millis(200)).wait().unwrap();
+        std::process::exit(1);
+    } else {
+        info!(&logger, "Shutdown");
+    }
     // update(root, "user");
 }
 

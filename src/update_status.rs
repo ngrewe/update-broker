@@ -11,12 +11,14 @@ use std::marker::Sized;
 use std::ffi::OsStr;
 use std::ffi::OsString;
 use std::fmt::Debug;
+use std::rc::Rc;
 use futures::Future;
 use tokio_core::reactor::Handle;
 use tokio_inotify::AsyncINotify;
 use std::boxed::FnBox;
 use tokio_inotify::{IN_CREATE, IN_DELETE};
 use std::process::Command;
+use slog::Logger;
 
 static VERSION_ZERO: &'static str = "0.0.0";
 
@@ -173,11 +175,14 @@ impl UpdateStatusNotifier {
         }
     }
 
-    pub fn new_with_path_and_consumer(handle: &Handle, path: &Path, consume: Box<UpdateStatusIndicationConsumer>) -> Result<Box<Future<Item=(), Error=Error>>> {
+    pub fn new_with_path_and_consumer(handle: &Handle, path: &Path, consume: Box<UpdateStatusIndicationConsumer>, logger: Rc<Logger>) -> Result<Box<Future<Item=(), Error=Error>>> {
         AsyncINotify::init(handle)
             .and_then(|stream| UpdateStatusNotifier::add_watch(stream, path))
             .and_then(|stream| UpdateStatusNotifier::get_filtered(stream, path))
-            .map(|filtered| filtered.map(|ev| UpdateStatusIndication::from_inotify_event(&ev)))
+            .map(|filtered| filtered.map(|ev| UpdateStatusIndication::from_inotify_event(&ev)).map_err(move |e| {
+                warn!(&logger, "Error handling watch. {:?}", e);
+                e
+            }))
             .map(|mapped| {
                 return Box::new(mapped.for_each(UpdateStatusIndicatorAdapter(consume))) as Box<Future<Item=(), Error=Error>>
             })
