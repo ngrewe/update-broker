@@ -4,3 +4,18 @@ version = "0.1.0"
 authors = ["Niels Grewe <niels.grewe@halbordnung.de>"]
 
 [dependencies]
+clap = {version = "2.24", features = ["yaml"]}
+mio = "~0.6.11"
+libc = "*"
+slog = "^2"
+slog-async = "^2"
+slog-term = "^2"
+slog-journald = "^2"
+dbus-tokio = "~0.2.0"
+futures = "~0.1.17"
+inotify = "*"
+tokio-core = "*"
+tokio-inotify = "~0.3.0"
+
+[build-dependencies]
+gcc = "*"

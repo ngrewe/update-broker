@@ -1,0 +1,29 @@
+- hosts: all
+  tasks:
+    - apt:
+        name: '{{item}}'
+        state: installed
+      with_items:
+        - curl
+        - build-essential
+        - libsystemd-dev
+        - libapt-pkg-dev
+        - libclang-dev
+        - pkg-config
+        - libdbus-1-dev
+        - vim-nox
+      become: true
+    - name: check for rustup
+      stat:
+        path: "{{ ansible_env.HOME }}/.cargo/bin/rustup"
+      register: has_rustup
+    - name: Install rustup
+      shell: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly -y
+      when: not has_rustup.stat.exists
+    - name: check for bindgen
+      stat:
+        path: "{{ ansible_env.HOME }}/.cargo/bin/bindgen"
+      register: has_bindgen
+    - name: Install bindgen
+      when: not has_bindgen.stat.exists
+      shell: cargo install bindgen
