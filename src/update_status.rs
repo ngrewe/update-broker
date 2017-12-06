@@ -16,6 +16,7 @@ use tokio_core::reactor::Handle;
 use tokio_inotify::AsyncINotify;
 use std::boxed::FnBox;
 use tokio_inotify::{IN_CREATE, IN_DELETE};
+use std::process::Command;
 
 static VERSION_ZERO: &'static str = "0.0.0";
 
@@ -63,9 +64,24 @@ impl UpdateStatusIndication {
             last_checked_time: SystemTime::now(),
             progress: 0.0,
             current_operation: current_operation,
-            new_version: String::from(VERSION_ZERO),
+            new_version: UpdateStatusIndication::version(),
             new_size: 0
         }
+    }
+
+    fn version() -> String {
+        Command::new("lsb_release")
+        .arg("-r")
+        .arg("-s")
+        .output()
+        .and_then(|o| String::from_utf8(o.stdout)
+            .map(|mut s| {
+                let len = s.trim_right().len();
+                s.truncate(len);
+                s
+            })
+            .map_err(|_| Error::new(ErrorKind::InvalidData, "Invalid version string"))
+        ).unwrap_or_else(|_| String::from(VERSION_ZERO))
     }
 
     pub fn last_checked_time_millis(&self) -> i64 {
