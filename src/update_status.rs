@@ -97,10 +97,7 @@ impl UpdateStatusIndication {
 }
 
 // #[derive(Debug)]
-pub struct UpdateStatusNotifier {
-    stream: AsyncINotify,
-    target: (FnMut(UpdateStatusIndication) -> ())
-}
+pub struct UpdateStatusNotifier();
 
 #[derive(Debug)]
 struct FileNameFilter(OsString);
@@ -160,7 +157,7 @@ impl UpdateStatusNotifier {
         }
     }
 
-    fn new_with_path_and_consumer(handle: &Handle, path: &Path, consume: Box<UpdateStatusIndicationConsumer>) -> Result<Box<Future<Item=(), Error=Error>>> {
+    pub fn new_with_path_and_consumer(handle: &Handle, path: &Path, consume: Box<UpdateStatusIndicationConsumer>) -> Result<Box<Future<Item=(), Error=Error>>> {
         AsyncINotify::init(handle)
             .and_then(|stream| UpdateStatusNotifier::add_watch(stream, path))
             .and_then(|stream| UpdateStatusNotifier::get_filtered(stream, path))
