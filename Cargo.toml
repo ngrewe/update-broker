@@ -1,10 +1,11 @@
 [package]
-name = "upgrade-broker"
-version = "0.1.0"
-authors = ["Niels Grewe <niels.grewe@halbordnung.de>"]
+name = "update-broker"
+version = "1.0.0"
+description = "A reboot required notification daemon"
+authors = ["Niels Grewe <niels.grewe@futuretv-group.com>"]
 
 [dependencies]
-clap = {version = "2.24", features = ["yaml"]}
+clap = {version = "~2.28", features = ["yaml"]}
 mio = "~0.6.11"
 libc = "*"
 slog = "^2"
@@ -20,5 +21,20 @@ tokio-inotify = "~0.3.0"
 tokio-signal = "~0.1.2"
 tokio-timer = "~0.1.2"
 
-[build-dependencies]
-gcc = "*"
+[package.metadata.deb]
+maintainer = "Niels Grewe <niels.grewe@futuretv-group.com>"
+copyright = "2017, FutureTV Production GmbH"
+depends = "$auto, systemd, dbus"
+extended-description = """\
+The update broker is a service that monitors /var/run/reboot-required \
+and implements the com.coreos.update1 D-Bus interfacce in order to \
+inform the locksmithd cluster reboot manager about when to reboot \
+a machine"""
+section = "admin"
+priority = "optional"
+maintainer-scripts = "control/"
+assets = [
+    ["assets/update-broker.service", "lib/systemd/system/update-broker.service", "644"],
+    ["assets/com.futuretv-group.UpdateBroker.conf", "etc/dbus-1/system.d/com.futuretv-group.UpdateBroker.conf", "644"],
+    ["target/release/update-broker", "usr/sbin/update-broker", "755"]
+]

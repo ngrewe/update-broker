@@ -1,0 +1,15 @@
+name: update-broker
+version: "1.0.0"
+author: Niels Grewe <niels.grewe@futuretv-group.com
+about: Implements the com.coreos.update1.Manager interface to report reboot requirements to locksmithd.
+args:
+  - debug:
+      short: d
+      long: debug
+      help: Prints logs to stdout in addition to the journal
+  - file:
+      short: f
+      long: file
+      help: The file which presence to monitor in order to detect reboots.
+      value_name: FILE
+      takes_value: true

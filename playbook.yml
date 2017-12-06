@@ -11,6 +11,7 @@
         - libclang-dev
         - pkg-config
         - libdbus-1-dev
+        - liblzma-dev
         - vim-nox
       become: true
     - name: check for rustup

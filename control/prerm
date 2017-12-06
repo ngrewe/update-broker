@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+# Automatically added by dh_systemd_start
+if [ -d /run/systemd/system ]; then
+	deb-systemd-invoke stop update-broker.service >/dev/null
+fi
+# End automatically added section
+# Automatically added by dh_installinit
+if [ -x "/etc/init.d/update-broker" ]; then
+	invoke-rc.d update-broker stop || exit $?
+fi
+# End automatically added section

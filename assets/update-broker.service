@@ -1,0 +1,11 @@
+[Unit]
+Description=A Reboot Required Notification Daemon
+
+[Service]
+ExecStart=/usr/sbin/update-broker
+Restart=on-failure
+Type=dbus
+BusName=com.coreos.update1
+
+[Install]
+WantedBy=multi-user.target
