@@ -1,3 +1,7 @@
+#![feature(unboxed_closures)]
+#![feature(fn_traits)]
+#![feature(fnbox)]
+
 #[macro_use]
 extern crate slog;
 extern crate slog_term;
@@ -7,6 +11,8 @@ extern crate libc;
 extern crate futures;
 extern crate tokio_inotify;
 extern crate tokio_core;
+extern crate dbus_tokio;
+extern crate dbus;
 extern crate inotify;
 use slog::*;
 use slog_journald::JournaldDrain;
@@ -20,7 +26,7 @@ use tokio_core::reactor::Core;
 
 mod apt;
 mod update_status;
-
+mod server;
 
 static SENTINEL_FILE: &'static str = "/var/run/reboot-required";
 
@@ -48,7 +54,7 @@ fn main() {
             info!(root, "update {:?}", ev);
         Ok(())
     });
-
+    server::engine(&reboot_sentinel);
     evloop.run(show_events).unwrap();
     // update(root, "user");
 }
