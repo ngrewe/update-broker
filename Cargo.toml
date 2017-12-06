@@ -27,7 +27,7 @@ copyright = "2017, FutureTV Production GmbH"
 depends = "$auto, systemd, dbus"
 extended-description = """\
 The update broker is a service that monitors /var/run/reboot-required \
-and implements the com.coreos.update1 D-Bus interfacce in order to \
+and implements the com.coreos.update1 D-Bus interface in order to \
 inform the locksmithd cluster reboot manager about when to reboot \
 a machine"""
 section = "admin"
