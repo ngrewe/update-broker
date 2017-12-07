@@ -161,8 +161,6 @@ impl FnOnce<(Option<UpdateStatusIndication>,)> for UpdateStatusIndicatorAdapter 
     }
 }
 
-
-
 impl UpdateStatusNotifier {
     fn add_watch(inotify: AsyncINotify, path: &Path) -> Result<AsyncINotify> {
         path.parent().map_or(
