@@ -9,3 +9,4 @@ BusName=com.coreos.update1
 
 [Install]
 WantedBy=multi-user.target
+Alias=update-engine.service

@@ -33,7 +33,7 @@ impl UpdateStatusIndicationConsumer for DBusUpdateIndicator {
             .send(
                 self.signal
                     .msg(
-                        &"/com/coreos/update1/Manager".into(),
+                        &"/com/coreos/update1".into(),
                         &"com.coreos.update1.Manager".into(),
                     )
                     .append1(status.last_checked_time_millis())
@@ -81,7 +81,7 @@ pub fn engine(path: &Path, logger: Rc<Logger>) -> Result<(), IoError> {
     let l2 = logger.clone();
     let l3 = logger.clone();
     let tree = f.tree(ATree::new()).add(
-        f.object_path("/com/coreos/update1/Manager", ())
+        f.object_path("/com/coreos/update1", ())
             .introspectable()
             .add(
                 f.interface("com.coreos.update1.Manager", ())
