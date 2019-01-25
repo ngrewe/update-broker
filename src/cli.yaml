@@ -1,6 +1,6 @@
 name: update-broker
 version: "1.0.0"
-author: Niels Grewe <niels.grewe@futuretv-group.com
+author: Niels Grewe <niels.grewe@halbordnung.de>
 about: Implements the com.coreos.update1.Manager interface to report reboot requirements to locksmithd.
 args:
   - debug:
