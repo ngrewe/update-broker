@@ -4,12 +4,12 @@ addons:
   apt:
     packages:
       - libsystemd-dev
-      - libapt-pkg-dev
-      - libclang-dev
-      - pkg-config
       - libdbus-1-dev
-      - liblzma-dev
 rust:
   - nightly
+cache: cargo
+install:
+  - cargo install cargo-deb
 script:
-  - cargo build --verbose --all
+  - cargo build --verbose
+  - cargo deb --verbose
