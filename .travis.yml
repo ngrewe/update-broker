@@ -1,0 +1,15 @@
+dist: xenial
+language: rust
+addons:
+  apt:
+    packages:
+      - libsystemd-dev
+      - libdbus-1-dev
+rust:
+  - nightly
+cache: cargo
+install:
+  - cargo install cargo-deb
+script:
+  - cargo build --verbose
+  - cargo deb --verbose
