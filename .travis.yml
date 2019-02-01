@@ -6,10 +6,17 @@ addons:
       - libsystemd-dev
       - libdbus-1-dev
 rust:
+  - stable
+  - beta
   - nightly
+matrix:
+  allow_failures:
+    - rust: nightly
+  fast_finish: true
+
 cache: cargo
 install:
-  - cargo install cargo-deb
+  - cargo install --force cargo-deb
 script:
   - cargo build --verbose
   - cargo deb --verbose
