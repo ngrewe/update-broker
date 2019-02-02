@@ -15,8 +15,8 @@ jobs:
   container: $[ variables['containerResource'] ]
   steps:
     - script: |
-        apt-get update
-        apt-get install -yq libsystemd-dev libdbus-1-dev
+        sudo apt-get update
+        sudo apt-get install -yq libsystemd-dev libdbus-1-dev
       displayName: Install dependencies
     - script: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
       displayName: Install Rust toolchain
