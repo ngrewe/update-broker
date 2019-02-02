@@ -1,0 +1,35 @@
+---
+resources:
+  containers:
+    - container: xenial
+      image: 'ubuntu:16.04'
+
+jobs:
+- job: release
+  pool:
+    vmImage: 'Ubuntu 16.04'
+  strategy:
+    matrix:
+      xenial:
+        containerResource: xenial
+  container: $[ variables['containerResource'] ]
+  steps:
+    - script: |
+        apt-get update
+        apt-get install -yq libsystemd-dev libdbus-1-dev
+      displayName: Install dependencies
+    - script: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
+      displayName: Install Rust toolchain
+    - script: cargo install cargo-deb
+      displayName: Install cargo-deb
+    - script: cargo deb
+      displayName: Build package
+    - task: CopyFiles@2
+      inputs:
+        contents: '$(System.DefaultWorkingDirectory)/target/debian'
+        targetFolder: $(Build.ArtifactStagingDirectory)
+      displayName: 'Copy package'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        artifactName: $(containerResource)
+        displayName: 'Upload artifacts'
