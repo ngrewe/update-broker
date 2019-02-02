@@ -1,35 +1,32 @@
-#![feature(unboxed_closures)]
-#![feature(fn_traits)]
-
 #[macro_use]
 extern crate clap;
 #[macro_use]
 extern crate slog;
-extern crate slog_term;
-extern crate slog_journald;
-extern crate slog_async;
-extern crate libc;
+extern crate dbus;
+extern crate dbus_tokio;
 extern crate futures;
+extern crate inotify;
+extern crate libc;
+extern crate slog_async;
+extern crate slog_journald;
+extern crate slog_term;
 extern crate tokio_core;
 extern crate tokio_inotify;
 extern crate tokio_signal;
 extern crate tokio_timer;
-extern crate dbus_tokio;
-extern crate dbus;
-extern crate inotify;
 
 use slog::*;
 use slog_journald::JournaldDrain;
 
-use std::time;
 use std::path::Path;
 use std::rc::Rc;
+use std::time;
 
+use clap::App;
 use futures::Future;
 use tokio_timer::Timer;
-use clap::App;
-mod update_status;
 mod server;
+mod update_status;
 
 static SENTINEL_FILE: &'static str = "/var/run/reboot-required";
 

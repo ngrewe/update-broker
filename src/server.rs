@@ -1,22 +1,22 @@
-use dbus::{Connection, BusType, NameFlag};
 use dbus::tree::{MethodErr, Signal};
+use dbus::{BusType, Connection, NameFlag};
 use dbus_tokio::tree::{AFactory, ATree, ATreeServer};
 use dbus_tokio::AConnection;
-use std::result::Result;
+use futures::future::Executor;
+use futures::Future;
+use futures::Stream;
 use std::path::Path;
+use std::result::Result;
 use tokio_core::reactor::Core;
 use tokio_signal::unix::{Signal as USignal, SIGTERM};
 use tokio_timer::Timer;
-use futures::Stream;
-use futures::Future;
-use futures::future::Executor;
 
-use std::sync::Arc;
-use std::rc::Rc;
-use std::time;
+use slog::Logger;
 use std::io::{Error as IoError, ErrorKind};
 use std::process;
-use slog::Logger;
+use std::rc::Rc;
+use std::sync::Arc;
+use std::time;
 
 use update_status::{UpdateStatusIndication, UpdateStatusIndicationConsumer, UpdateStatusNotifier};
 
@@ -35,13 +35,11 @@ impl UpdateStatusIndicationConsumer for DBusUpdateIndicator {
                     .msg(
                         &"/com/coreos/update1".into(),
                         &"com.coreos.update1.Manager".into(),
-                    )
-                    .append1(status.last_checked_time_millis())
+                    ).append1(status.last_checked_time_millis())
                     .append1(status.progress)
                     .append2::<&str, &str>(&status.current_operation, &status.new_version)
                     .append1(status.new_size),
-            )
-            .map(|_| ())
+            ).map(|_| ())
             .unwrap_or_else(|e| {
                 warn!(&self.logger, "Could not broadcast update signal. {:?}", e);
             });
@@ -102,21 +100,18 @@ pub fn engine(path: &Path, logger: Rc<Logger>) -> Result<(), IoError> {
                                     .append1(status.progress)
                                     .append2::<&str, &str>(
                                         &status.current_operation,
-                                        &status.new_version
-                                    )
-                                    .append1(status.new_size),
+                                        &status.new_version,
+                                    ).append1(status.new_size),
                             ])
                         }).outarg::<i64, _>("last_checked_time")
-                            .outarg::<f64, _>("progress")
-                            .outarg::<&str, _>("current_operation")
-                            .outarg::<&str, _>("new_version")
-                            .outarg::<i64, _>("new_size"),
-                    )
-                    .add_m(f.method("AttemptUpdate", (), move |_| {
+                        .outarg::<f64, _>("progress")
+                        .outarg::<&str, _>("current_operation")
+                        .outarg::<&str, _>("new_version")
+                        .outarg::<i64, _>("new_size"),
+                    ).add_m(f.method("AttemptUpdate", (), move |_| {
                         warn!(&l2, "Ignoring attempt to call AttemptUpdate");
                         Err(MethodErr::failed(&"Not implemented".to_owned()))
-                    }))
-                    .add_m(f.method("ResetStatus", (), move |_| {
+                    })).add_m(f.method("ResetStatus", (), move |_| {
                         warn!(&l3, "Ignoring attempt to call ResetStatus");
                         Err(MethodErr::failed(&"Not implemented".to_owned()))
                     })),
@@ -185,8 +180,9 @@ pub fn engine(path: &Path, logger: Rc<Logger>) -> Result<(), IoError> {
         .map_err(|_| ())
         .into_future()
         .select2(server.map_err(|_| ()));
-    return core.run(termination).map(|_| ()).map_err(|_| {
-        IoError::new(ErrorKind::Other, "Error running server")
-    });
+    return core
+        .run(termination)
+        .map(|_| ())
+        .map_err(|_| IoError::new(ErrorKind::Other, "Error running server"));
     // Ok(())
 }

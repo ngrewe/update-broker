@@ -1,19 +1,18 @@
-use std::ops::Deref;
-use std::path::Path;
-use std::time::{UNIX_EPOCH, SystemTime};
+use futures::Future;
+use futures::Stream;
+use inotify::wrapper::Event;
+use slog::Logger;
+use std::ffi::OsString;
 use std::io::Result;
 use std::io::{Error, ErrorKind};
-use inotify::wrapper::Event;
-use futures::stream::{Filter};
-use futures::Stream;
-use std::ffi::OsString;
+use std::ops::Deref;
+use std::path::Path;
+use std::process::Command;
 use std::rc::Rc;
-use futures::Future;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio_core::reactor::Handle;
 use tokio_inotify::AsyncINotify;
 use tokio_inotify::{IN_CREATE, IN_DELETE};
-use std::process::Command;
-use slog::Logger;
 
 static VERSION_ZERO: &'static str = "0.0.0";
 
@@ -78,12 +77,8 @@ impl UpdateStatusIndication {
                         let len = s.trim_right().len();
                         s.truncate(len);
                         s
-                    })
-                    .map_err(|_| {
-                        Error::new(ErrorKind::InvalidData, "Invalid version string")
-                    })
-            })
-            .unwrap_or_else(|_| String::from(VERSION_ZERO))
+                    }).map_err(|_| Error::new(ErrorKind::InvalidData, "Invalid version string"))
+            }).unwrap_or_else(|_| String::from(VERSION_ZERO))
     }
 
     pub fn last_checked_time_millis(&self) -> i64 {
@@ -114,51 +109,11 @@ impl UpdateStatusIndication {
     }
 }
 
-// #[derive(Debug)]
-pub struct UpdateStatusNotifier();
-
 #[derive(Debug)]
-struct FileNameFilter(OsString);
-
-impl<'a> FnOnce<(&'a Event,)> for FileNameFilter {
-    type Output = bool;
-    extern "rust-call" fn call_once(self, args: (&'a Event,)) -> bool {
-        args.0.name.as_os_str() == &(self.0)
-    }
-}
-
-impl<'a> FnMut<(&'a Event,)> for FileNameFilter {
-    extern "rust-call" fn call_mut(&mut self, args: (&'a Event,)) -> bool {
-        args.0.name.as_os_str() == &(self.0)
-    }
-}
+pub struct UpdateStatusNotifier();
 
 pub trait UpdateStatusIndicationConsumer {
     fn status_changed(&self, status: UpdateStatusIndication) -> ();
-}
-
-struct UpdateStatusIndicatorAdapter(Box<UpdateStatusIndicationConsumer>);
-
-impl FnMut<(Option<UpdateStatusIndication>,)> for UpdateStatusIndicatorAdapter {
-    extern "rust-call" fn call_mut(
-        &mut self,
-        args: (Option<UpdateStatusIndication>,),
-    ) -> Result<()> {
-        if args.0.is_some() {
-            self.0.status_changed(args.0.unwrap());
-        }
-        Ok(())
-    }
-}
-
-impl FnOnce<(Option<UpdateStatusIndication>,)> for UpdateStatusIndicatorAdapter {
-    type Output = Result<()>;
-    extern "rust-call" fn call_once(self, args: (Option<UpdateStatusIndication>,)) -> Result<()> {
-        if args.0.is_some() {
-            self.0.status_changed(args.0.unwrap());
-        }
-        Ok(())
-    }
 }
 
 impl UpdateStatusNotifier {
@@ -169,47 +124,48 @@ impl UpdateStatusNotifier {
                 "Invalid path to reboot sentinel file",
             )),
             |dir| {
-                inotify.add_watch(dir, IN_CREATE | IN_DELETE).map(
-                    |_| inotify,
-                )
+                inotify
+                    .add_watch(dir, IN_CREATE | IN_DELETE)
+                    .map(|_| inotify)
             },
         )
     }
 
-    fn get_filtered(
-        inotify: AsyncINotify,
+    fn get_file_name_os_string(path: &Path) -> Option<OsString> {
+        path.file_name().map(|f| f.to_os_string())
+    }
+
+    pub fn new_with_path_and_consumer(
+        handle: &Handle,
         path: &Path,
-    ) -> Result<Filter<AsyncINotify, FileNameFilter>> {
-        if let Some(sentinel_file) = path.file_name() {
-            Ok(inotify.filter(FileNameFilter(sentinel_file.to_os_string())))
+        consumer: Box<UpdateStatusIndicationConsumer>,
+        logger: Rc<Logger>,
+    ) -> Result<Box<Future<Item = (), Error = Error>>> {
+        if let Some(sentinel_file) = UpdateStatusNotifier::get_file_name_os_string(path) {
+            AsyncINotify::init(handle)
+                .and_then(|stream| UpdateStatusNotifier::add_watch(stream, path))
+                .map(|stream| {
+                    stream.filter(move |event: &Event| event.name.as_os_str() == sentinel_file)
+                }).map(|stream| {
+                    stream
+                        .map(|ev| UpdateStatusIndication::from_inotify_event(&ev))
+                        .map_err(move |e| {
+                            warn!(&logger, "Error handling watch. {:?}", e);
+                            e
+                        })
+                }).map(|stream| {
+                    return Box::new(stream.for_each(move |v| {
+                        if let Some(indication) = v {
+                            consumer.status_changed(indication)
+                        }
+                        Ok(())
+                    })) as Box<Future<Item = (), Error = Error>>;
+                })
         } else {
             Err(Error::new(
                 ErrorKind::NotFound,
                 "Invalid path to reboot sentinel file",
             ))
         }
-    }
-
-    pub fn new_with_path_and_consumer(
-        handle: &Handle,
-        path: &Path,
-        consume: Box<UpdateStatusIndicationConsumer>,
-        logger: Rc<Logger>,
-    ) -> Result<Box<Future<Item = (), Error = Error>>> {
-        AsyncINotify::init(handle)
-            .and_then(|stream| UpdateStatusNotifier::add_watch(stream, path))
-            .and_then(|stream| UpdateStatusNotifier::get_filtered(stream, path))
-            .map(|filtered| {
-                filtered
-                    .map(|ev| UpdateStatusIndication::from_inotify_event(&ev))
-                    .map_err(move |e| {
-                        warn!(&logger, "Error handling watch. {:?}", e);
-                        e
-                    })
-            })
-            .map(|mapped| {
-                return Box::new(mapped.for_each(UpdateStatusIndicatorAdapter(consume))) as
-                    Box<Future<Item = (), Error = Error>>;
-            })
     }
 }
