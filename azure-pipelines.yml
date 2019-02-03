@@ -1,0 +1,30 @@
+---
+resources:
+  containers:
+    - container: xenial
+      image: 'glaux/update-broker-build-deps:16.04'
+    - container: bionic
+      image: 'glaux/update-broker-build-deps:18.04'
+jobs:
+- job: release
+  pool:
+    vmImage: 'Ubuntu 16.04'
+  strategy:
+    matrix:
+      xenial:
+        containerResource: xenial
+      bionic:
+        containerResource: bionic
+  container: $[ variables['containerResource'] ]
+  steps:
+    - script: . /opt/rustup/env && cargo deb
+      displayName: Build package
+    - task: CopyFiles@2
+      inputs:
+        contents: '$(System.DefaultWorkingDirectory)/target/debian/*.deb'
+        targetFolder: $(Build.ArtifactStagingDirectory)
+      displayName: 'Copy package'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        artifactName: $(containerResource)
+        displayName: 'Upload artifacts'
