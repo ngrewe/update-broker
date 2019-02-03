@@ -1,3 +1,5 @@
+// This file is part of the upgrade broker
+// (c) 2017 FutureTV Production GmbH, Niels Grewe
 use futures::Future;
 use futures::Stream;
 use inotify::wrapper::Event;
