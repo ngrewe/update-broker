@@ -1,19 +1,30 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
-trigger:
-- master
-
-pool:
-  vmImage: 'Ubuntu-16.04'
-
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
-
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+---
+resources:
+  containers:
+    - container: xenial
+      image: 'glaux/update-broker-build-deps:16.04'
+    - container: bionic
+      image: 'glaux/update-broker-build-deps:18.04'
+jobs:
+- job: release
+  pool:
+    vmImage: 'Ubuntu 16.04'
+  strategy:
+    matrix:
+      xenial:
+        containerResource: xenial
+      bionic:
+        containerResource: bionic
+  container: $[ variables['containerResource'] ]
+  steps:
+    - script: . /opt/rustup/env && cargo deb
+      displayName: Build package
+    - task: CopyFiles@2
+      inputs:
+        contents: '$(System.DefaultWorkingDirectory)/target/debian/*.deb'
+        targetFolder: $(Build.ArtifactStagingDirectory)
+      displayName: 'Copy package'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        artifactName: $(containerResource)
+        displayName: 'Upload artifacts'
