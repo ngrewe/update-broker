@@ -1,3 +1,5 @@
+// This file is part of the upgrade broker
+// (c) 2017 FutureTV Production GmbH
 #[macro_use]
 extern crate clap;
 #[macro_use]

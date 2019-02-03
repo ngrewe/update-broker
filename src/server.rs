@@ -1,3 +1,5 @@
+// This file is part of the upgrade broker
+// (c) 2017 FutureTV Production GmbH
 use dbus::tree::{MethodErr, Signal};
 use dbus::{BusType, Connection, NameFlag};
 use dbus_tokio::tree::{AFactory, ATree, ATreeServer};
